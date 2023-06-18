@@ -35,10 +35,10 @@ void ProtocolLogin::getCharacterList(const std::string &accountIdentifier, const
 	if (oldProtocol && !g_configManager().getBoolean(OLD_PROTOCOL)) {
 		disconnectClient(fmt::format("Only protocol version {}.{} is allowed.", CLIENT_VERSION_UPPER, CLIENT_VERSION_LOWER));
 		return;
-	} else if (!oldProtocol) {
+	} /* else if (!oldProtocol) {
 		disconnectClient(fmt::format("Only protocol version {}.{} or outdated 11.00 is allowed.", CLIENT_VERSION_UPPER, CLIENT_VERSION_LOWER));
 		return;
-	}
+	}*/
 
 	if (!IOLoginData::authenticateAccountPassword(accountIdentifier, password, &account)) {
 		std::ostringstream ss;
@@ -178,13 +178,6 @@ void ProtocolLogin::onRecvFirstMessage(NetworkMessage &msg) {
 	if (password.empty()) {
 		disconnectClient("Invalid password.");
 		return;
-	}
-
-	// OTCv8 version detection
-	uint16_t otclientV8 = 0;
-	uint16_t otcV8StringLength = msg.get<uint16_t>();
-	if (otcV8StringLength == 5 && msg.getString(5) == "OTCv8") {
-		otclientV8 = msg.get<uint16_t>(); // 253, 260, 261, ...
 	}
 
 	auto thisPtr = std::static_pointer_cast<ProtocolLogin>(shared_from_this());

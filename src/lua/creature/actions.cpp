@@ -352,6 +352,8 @@ ReturnValue Actions::internalUseItem(Player* player, const Position &pos, uint8_
 			player->onSendContainer(openContainer);
 		}
 
+
+
 		return RETURNVALUE_NOERROR;
 	}
 

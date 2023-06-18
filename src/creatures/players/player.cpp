@@ -2167,7 +2167,7 @@ void Player::addExperience(Creature* target, uint64_t exp, bool sendText /* = fa
 		message.primary.color = TEXTCOLOR_WHITE_EXP;
 		sendTextMessage(message);
 
-		SpectatorVec spectators;
+		SpectatorHashSet spectators;
 		g_game().map.getSpectators(spectators, position, false, true);
 		spectators.erase(this);
 		if (!spectators.empty()) {
@@ -2260,7 +2260,7 @@ void Player::removeExperience(uint64_t exp, bool sendText /* = false*/) {
 		message.primary.color = TEXTCOLOR_RED;
 		sendTextMessage(message);
 
-		SpectatorVec spectators;
+		SpectatorHashSet spectators;
 		g_game().map.getSpectators(spectators, position, false, true);
 		spectators.erase(this);
 		if (!spectators.empty()) {
@@ -2712,7 +2712,7 @@ bool Player::spawn() {
 		return false;
 	}
 
-	SpectatorVec spectators;
+	SpectatorHashSet spectators;
 	g_game().map.getSpectators(spectators, position, true);
 	for (Creature* spectator : spectators) {
 		if (!spectator) {
@@ -2755,7 +2755,7 @@ void Player::despawn() {
 
 	std::vector<int32_t> oldStackPosVector;
 
-	SpectatorVec spectators;
+	SpectatorHashSet spectators;
 	g_game().map.getSpectators(spectators, tile->getPosition(), true);
 	size_t i = 0;
 	for (Creature* spectator : spectators) {
@@ -2781,8 +2781,7 @@ void Player::despawn() {
 
 	getParent()->postRemoveNotification(this, nullptr, 0);
 
-	// g_game().removePlayer(this);
-	getTown()->getTemplePosition();
+	//g_game().removePlayer(this);
 
 	// show player as pending
 	for (const auto &[key, player] : g_game().getPlayers()) {
@@ -6357,7 +6356,7 @@ bool Player::saySpell(
 	SpeakClasses type,
 	const std::string &text,
 	bool ghostMode,
-	SpectatorVec* listPtr /* = nullptr*/,
+	SpectatorHashSet* spectatorsPtr /* = nullptr*/,
 	const Position* pos /* = nullptr*/
 ) {
 	if (text.empty()) {
@@ -6369,9 +6368,9 @@ bool Player::saySpell(
 		pos = &getPosition();
 	}
 
-	SpectatorVec spectators;
+	SpectatorHashSet spectators;
 
-	if (!listPtr || listPtr->empty()) {
+	if (!spectatorsPtr || spectatorsPtr->empty()) {
 		// This somewhat complex construct ensures that the cached SpectatorHashSet
 		// is used if available and if it can be used, else a local vector is
 		// used (hopefully the compiler will optimize away the construction of
@@ -6382,7 +6381,7 @@ bool Player::saySpell(
 			g_game().map.getSpectators(spectators, *pos, true, false, (Map::maxClientViewportX + 1) * 2, (Map::maxClientViewportX + 1) * 2, (Map::maxClientViewportY + 1) * 2, (Map::maxClientViewportY + 1) * 2);
 		}
 	} else {
-		spectators = (*listPtr);
+		spectators = (*spectatorsPtr);
 	}
 
 	int32_t valueEmote = 0;

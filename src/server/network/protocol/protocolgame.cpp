@@ -297,9 +297,13 @@ void ProtocolGame::release() {
 
 void ProtocolGame::login(const std::string &name, uint32_t accountId, OperatingSystem_t operatingSystem) {
 		// OTCv8 features and extended opcodes
-	if (otclientV8 || operatingSystem >= CLIENTOS_OTCLIENT_LINUX) {
-		if (otclientV8)
-			sendFeatures();
+	// OTCV8 features
+	if (otclientV8 > 0) {
+		sendFeatures();
+	}
+
+	// Extended opcodes
+	if (operatingSystem >= CLIENTOS_OTCLIENT_LINUX) {
 		NetworkMessage opcodeMessage;
 		opcodeMessage.addByte(0x32);
 		opcodeMessage.addByte(0x00);
@@ -500,7 +504,7 @@ void ProtocolGame::onRecvFirstMessage(NetworkMessage &msg) {
 	// Old protocol support
 	oldProtocol = g_configManager().getBoolean(OLD_PROTOCOL) && version <= 1100;
 
-	if (oldProtocol || otclientV8) {
+	if (oldProtocol) {
 		setChecksumMethod(CHECKSUM_METHOD_ADLER32);
 	} else if (operatingSystem <= CLIENTOS_NEW_MAC) {
 		setChecksumMethod(CHECKSUM_METHOD_SEQUENCE);
@@ -983,6 +987,9 @@ void ProtocolGame::parsePacketFromDispatcher(NetworkMessage msg, uint8_t recvbyt
 			break;
 		case 0xC0:
 			parseForgeBrowseHistory(msg);
+			break;
+		case 0xC1:
+			sendQuickLootItems(msg);
 			break;
 		case 0xC9: /* update tile */
 			break;
@@ -1525,7 +1532,7 @@ void ProtocolGame::parseLookInBattleList(NetworkMessage &msg) {
 }
 
 void ProtocolGame::parseQuickLoot(NetworkMessage &msg) {
-	if (oldProtocol) {
+	if (oldProtocol && !otclientV8) {
 		return;
 	}
 
@@ -1537,10 +1544,21 @@ void ProtocolGame::parseQuickLoot(NetworkMessage &msg) {
 	addGameTask(&Game::playerQuickLoot, player->getID(), pos, itemId, stackpos, nullptr, lootAllCorpses, autoLoot);
 }
 
-void ProtocolGame::parseLootContainer(NetworkMessage &msg) {
-	if (oldProtocol) {
+void ProtocolGame::sendQuickLootItems(NetworkMessage &msg) {
+	if (!player || (oldProtocol && !otclientV8) || player->quickLootListItemIds.empty()) {
 		return;
 	}
+
+	msg.add<uint16_t>(player->quickLootListItemIds.size()); // Number of items
+
+	for (uint16_t itemId : player->quickLootListItemIds) {
+		msg.add<uint16_t>(itemId); // Add item ID to the message
+	}
+
+	writeToOutputBuffer(msg);
+}
+
+void ProtocolGame::parseLootContainer(NetworkMessage &msg) {
 
 	uint8_t action = msg.getByte();
 	if (action == 0) {
@@ -1558,11 +1576,20 @@ void ProtocolGame::parseLootContainer(NetworkMessage &msg) {
 	} else if (action == 3) {
 		bool useMainAsFallback = msg.getByte() == 1;
 		addGameTask(&Game::playerSetQuickLootFallback, player->getID(), useMainAsFallback);
+	} else if (action == 4) {
+		uint16_t itemId = msg.get<uint16_t>();
+		addGameTask(&Game::playerAddQuickLootItem, player->getID(), itemId);
+	} else if (action == 5) {
+		ObjectCategory_t category = (ObjectCategory_t)msg.getByte();
+		uint16_t itemId = msg.get<uint16_t>();
+		addGameTask(&Game::playerRemoveQuickLootItem, player->getID(), itemId);
+	} else if (action == 6) {
+		addGameTask(&Game::playerClearQuickLootList, player->getID());
 	}
 }
 
 void ProtocolGame::parseQuickLootBlackWhitelist(NetworkMessage &msg) {
-	if (oldProtocol) {
+	if (oldProtocol && !otclientV8) {
 		return;
 	}
 
@@ -1805,7 +1832,7 @@ void ProtocolGame::parseCyclopediaCharacterInfo(NetworkMessage &msg) {
 }
 
 void ProtocolGame::parseHighscores(NetworkMessage &msg) {
-	if (oldProtocol) {
+	if (oldProtocol && !otclientV8) {
 		return;
 	}
 
@@ -1824,7 +1851,7 @@ void ProtocolGame::parseHighscores(NetworkMessage &msg) {
 }
 
 void ProtocolGame::parseTaskHuntingAction(NetworkMessage &msg) {
-	if (oldProtocol) {
+	if (oldProtocol && !otclientV8) {
 		return;
 	}
 
@@ -1841,7 +1868,7 @@ void ProtocolGame::parseTaskHuntingAction(NetworkMessage &msg) {
 }
 
 void ProtocolGame::sendHighscoresNoData() {
-	if (oldProtocol) {
+	if (oldProtocol && !otclientV8) {
 		return;
 	}
 
@@ -1852,7 +1879,7 @@ void ProtocolGame::sendHighscoresNoData() {
 }
 
 void ProtocolGame::sendHighscores(const std::vector<HighscoreCharacter> &characters, uint8_t categoryId, uint32_t vocationId, uint16_t page, uint16_t pages) {
-	if (oldProtocol) {
+	if (oldProtocol && !otclientV8) {
 		return;
 	}
 
@@ -1965,7 +1992,7 @@ void ProtocolGame::parseRuleViolationReport(NetworkMessage &msg) {
 }
 
 void ProtocolGame::parseBestiarysendRaces() {
-	if (oldProtocol) {
+	if (oldProtocol && !otclientV8) {
 		return;
 	}
 
@@ -2008,7 +2035,7 @@ void ProtocolGame::sendBestiaryEntryChanged(uint16_t raceid) {
 }
 
 void ProtocolGame::parseBestiarysendMonsterData(NetworkMessage &msg) {
-	if (oldProtocol) {
+	if (oldProtocol && !otclientV8) {
 		return;
 	}
 
@@ -2131,7 +2158,7 @@ void ProtocolGame::parseBestiarysendMonsterData(NetworkMessage &msg) {
 }
 
 void ProtocolGame::addBestiaryTrackerList(NetworkMessage &msg) {
-	if (oldProtocol) {
+	if (oldProtocol && !otclientV8) {
 		return;
 	}
 	uint16_t thisrace = msg.get<uint16_t>();
@@ -2592,7 +2619,7 @@ void ProtocolGame::BestiarysendCharms() {
 }
 
 void ProtocolGame::parseBestiarysendCreatures(NetworkMessage &msg) {
-	if (!player || oldProtocol) {
+	if (!player || (oldProtocol && !otclientV8)) {
 		return;
 	}
 
@@ -2886,7 +2913,11 @@ void ProtocolGame::sendCreatureLight(const Creature* creature) {
 }
 
 void ProtocolGame::sendCreatureIcon(const Creature* creature) {
-	if (!creature || !player || oldProtocol) {
+	if (!creature || !player) {
+		return;
+	}
+
+	if (oldProtocol) {
 		return;
 	}
 
@@ -2951,7 +2982,11 @@ void ProtocolGame::sendCreatureShield(const Creature* creature) {
 }
 
 void ProtocolGame::sendCreatureEmblem(const Creature* creature) {
-	if (!canSee(creature) || oldProtocol) {
+	if (!canSee(creature)) {
+		return;
+	}
+
+	if (oldProtocol) {
 		return;
 	}
 
@@ -3887,7 +3922,7 @@ void ProtocolGame::sendContainer(uint8_t cid, const Container* container, bool h
 }
 
 void ProtocolGame::sendLootContainers() {
-	if (!player || oldProtocol) {
+	if (!player || (oldProtocol && !otclientV8)) {
 		return;
 	}
 
@@ -6921,7 +6956,7 @@ void ProtocolGame::RemoveTileThing(NetworkMessage &msg, const Position &pos, uin
 }
 
 void ProtocolGame::sendKillTrackerUpdate(Container* corpse, const std::string &name, const Outfit_t creatureOutfit) {
-	if (!player || oldProtocol) {
+	if (oldProtocol && !otclientV8) {
 	return;
 	}
 	bool isCorpseEmpty = corpse->empty();
@@ -7192,22 +7227,24 @@ void ProtocolGame::parseExtendedOpcode(NetworkMessage &msg) {
 
 // OTCv8
 void ProtocolGame::sendFeatures() {
-	if (!otclientV8)
+	if (otclientV8 == 0) {
 		return;
+	}
 
-	std::map<GameFeature, bool> features;
-	// place for non-standard OTCv8 features
-	features[GameExtendedOpcode] = true;
+	std::map<GameFeature_t, bool> features;
+	// Place for non-standard OTCv8 features
+	features[GameFeature_t::ExtendedOpcode] = true;
 
-	if (features.empty())
+	if (features.empty()) {
 		return;
+	}
 
 	NetworkMessage msg;
 	msg.addByte(0x43);
-	msg.add<uint16_t>(features.size());
-	for (auto &feature : features) {
-		msg.addByte((uint8_t)feature.first);
-		msg.addByte(feature.second ? 1 : 0);
+	msg.add<uint16_t>(static_cast<uint16_t>(features.size()));
+	for (const auto &[gameFeature, haveFeature] : features) {
+		msg.addByte(static_cast<uint8_t>(gameFeature));
+		msg.addByte(haveFeature ? 1 : 0);
 	}
 	writeToOutputBuffer(msg);
 }

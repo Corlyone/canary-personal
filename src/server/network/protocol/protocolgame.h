@@ -104,6 +104,7 @@ class ProtocolGame final : public Protocol {
 		void parseLookInBattleList(NetworkMessage &msg);
 
 		void parseQuickLoot(NetworkMessage &msg);
+		void sendQuickLootItems(NetworkMessage &msg);
 		void parseLootContainer(NetworkMessage &msg);
 		void parseQuickLootBlackWhitelist(NetworkMessage &msg);
 
