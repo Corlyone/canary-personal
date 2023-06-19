@@ -67,13 +67,26 @@ void IOLoginData::setAccountType(uint32_t accountId, account::AccountType accoun
 }
 
 void IOLoginData::updateOnlineStatus(uint32_t guid, bool login) {
-	std::ostringstream query;
-	if (login) {
+	// Verifique o status da conexão do player antes de atualizá-lo
+	bool isOnline = isPlayerOnline(guid);
+
+	if (login && !isOnline) {
+		std::ostringstream query;
 		query << "INSERT INTO `players_online` VALUES (" << guid << ')';
-	} else {
+		Database::getInstance().executeQuery(query.str());
+	} else if (!login && isOnline) {
+		std::ostringstream query;
 		query << "DELETE FROM `players_online` WHERE `player_id` = " << guid;
+		Database::getInstance().executeQuery(query.str());
 	}
-	Database::getInstance().executeQuery(query.str());
+}
+
+bool IOLoginData::isPlayerOnline(uint32_t guid) {
+	std::ostringstream query;
+	query << "SELECT * FROM `players_online` WHERE `player_id` = " << guid;
+
+	DBResult_ptr result = Database::getInstance().storeQuery(query.str());
+	return (result && result->next());
 }
 
 bool IOLoginData::preloadPlayer(Player* player, const std::string &name) {

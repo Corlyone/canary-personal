@@ -2733,7 +2733,7 @@ bool Player::spawn() {
 }
 
 void Player::despawn() {
-	if (isDead()) {
+	if (isDead() || getHealth() <= 0) {
 		return;
 	}
 
@@ -2765,6 +2765,7 @@ void Player::despawn() {
 
 		if (const Player* player = spectator->getPlayer()) {
 			oldStackPosVector.push_back(player->canSeeCreature(this) ? tile->getStackposOfCreature(player, this) : -1);
+
 		}
 		if (Player* player = spectator->getPlayer()) {
 			player->sendRemoveTileThing(tile->getPosition(), oldStackPosVector[i++]);
@@ -2858,6 +2859,7 @@ void Player::removeList() {
 
 	for (const auto &[key, player] : g_game().getPlayers()) {
 		player->notifyStatusChange(this, VIPSTATUS_OFFLINE);
+		player->removePlayer(false);
 	}
 }
 
