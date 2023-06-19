@@ -2792,6 +2792,10 @@ void Player::despawn() {
 	setTemplePosition();
 	removeList();
 	setDead(true);
+	if (party) {
+		party->leaveParty(this);
+	}
+	IOLoginData::updateOnlineStatus(guid, false);
 }
 
 bool Player::dropCorpse(Creature* lastHitCreature, Creature* mostDamageCreature, bool lastHitUnjustified, bool mostDamageUnjustified) {
@@ -2859,7 +2863,6 @@ void Player::removeList() {
 
 	for (const auto &[key, player] : g_game().getPlayers()) {
 		player->notifyStatusChange(this, VIPSTATUS_OFFLINE);
-		player->removePlayer(false);
 	}
 }
 
