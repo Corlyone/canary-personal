@@ -1236,7 +1236,7 @@ void ValueCallback::getMinMaxValues(Player* player, CombatDamage &damage, bool u
 	if (!scriptInterface->reserveScriptEnv()) {
 		SPDLOG_ERROR("[ValueCallback::getMinMaxValues - Player {} formula {}] "
 					 "Call stack overflow. Too many lua script calls being nested.",
-					 player->getName(), type);
+					  player->getName(), fmt::underlying(type));
 		return;
 	}
 
