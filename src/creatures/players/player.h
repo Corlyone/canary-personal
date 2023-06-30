@@ -648,11 +648,11 @@ class Player final : public Creature, public Cylinder {
 			}
 		}
 
-		int32_t getMaxHealth() const override {
-			return std::max<int32_t>(1, healthMax + varStats[STAT_MAXHITPOINTS] + getWheelOfDestinyStat(WHEEL_OF_DESTINY_STAT_HEALTH));
+		uint32_t getMaxHealth() const override {
+			return std::max<uint32_t>(1, healthMax + varStats[STAT_MAXHITPOINTS] + getWheelOfDestinyStat(WHEEL_OF_DESTINY_STAT_HEALTH));
 		}
 		uint32_t getMaxMana() const override {
-			return std::max<int32_t>(0, manaMax + varStats[STAT_MAXMANAPOINTS] + getWheelOfDestinyStat(WHEEL_OF_DESTINY_STAT_MANA));
+			return std::max<uint32_t>(0, manaMax + varStats[STAT_MAXMANAPOINTS] + getWheelOfDestinyStat(WHEEL_OF_DESTINY_STAT_MANA));
 		}
 
 		Item* getInventoryItem(Slots_t slot) const;

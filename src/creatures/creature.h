@@ -182,10 +182,10 @@ class Creature : virtual public Thing {
 			return baseSpeed;
 		}
 
-		int32_t getHealth() const {
+		uint32_t getHealth() const {
 			return health;
 		}
-		virtual int32_t getMaxHealth() const {
+		virtual uint32_t getMaxHealth() const {
 			return healthMax;
 		}
 		uint32_t getMana() const {
@@ -554,8 +554,8 @@ class Creature : virtual public Thing {
 		uint16_t baseSpeed = 110;
 		uint32_t mana = 0;
 		int32_t varSpeed = 0;
-		int32_t health = 1000;
-		int32_t healthMax = 1000;
+		uint32_t health = 1000;
+		uint32_t healthMax = 1000;
 
 		uint16_t manaShield = 0;
 		uint16_t maxManaShield = 0;
